@@ -97,13 +97,13 @@ th{background:var(--panel2);color:var(--accent2)}
 .estack .e{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
 .estack .ehpm{width:46px;height:4px;border-radius:2px;background:#15080a;overflow:hidden}
 .estack .ehpm>i{display:block;height:100%;background:#e23b3b}
-.estack .ec{width:28px;height:28px;border-radius:50%;background:#1a2030;border:2px solid #e0524b;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden}
+.estack .ec{width:28px;height:28px;border-radius:50%;background:#1a2030;border:2px solid #e0524b;display:flex;align-items:center;justify-content:center;font-size:13px}
 .estack .ec.dead{opacity:.35;filter:grayscale(1)}
 .combo{position:absolute;left:24px;top:24px;color:#fff}
 .combo b{font-size:38px;font-weight:800}.combo span{font-size:14px;margin-left:6px;color:#cdd6e6}
 .party-bar{position:absolute;left:18px;bottom:16px;display:flex;gap:10px}
 .pm{width:62px;text-align:center;cursor:pointer}
-.pm .pc{width:58px;height:58px;border-radius:50%;background:#141b2b;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;margin:0 auto;overflow:hidden}
+.pm .pc{width:58px;height:58px;border-radius:50%;background:#141b2b;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;margin:0 auto}
 .pm.active .pc{border:2px solid var(--accent);box-shadow:0 0 12px rgba(124,92,255,.5)}
 .pm.dead .pc{opacity:.35;filter:grayscale(1)}
 .pm .ph{height:5px;border-radius:3px;background:#0a0e14;border:1px solid var(--line);margin-top:4px;overflow:hidden}
@@ -205,7 +205,7 @@ th{background:var(--panel2);color:var(--accent2)}
 .wkcorner span{font-size:9px;line-height:1.2;padding:1px 4px;border-radius:7px;font-weight:800;border:1px solid rgba(0,0,0,.45);box-shadow:0 1px 2px rgba(0,0,0,.5)}
 .estack .wkcorner{top:-2px;left:-2px}.estack .wkcorner span{font-size:7px;padding:0 2px;border-radius:5px}
 .pc .wkcorner.wkright{left:auto;right:-3px}
-.pc .ultcorner{position:absolute;top:-5px;right:-5px;left:auto;width:19px;height:19px;border-radius:50%;z-index:5;display:flex;align-items:center;justify-content:center}
+.pc .ultcorner{position:absolute;top:-5px;left:-5px;right:auto;width:19px;height:19px;border-radius:50%;z-index:5;display:flex;align-items:center;justify-content:center}
 .pc .ultcorner.full{box-shadow:0 0 8px 2px rgba(127,224,255,.85);animation:ultFull 1.2s ease-in-out infinite}
 .pc .ultcorner.full>b{color:#ffe066}
 @keyframes ultFull{0%,100%{box-shadow:0 0 6px 1px rgba(127,224,255,.6)}50%{box-shadow:0 0 11px 3px rgba(127,224,255,.95)}}
@@ -690,7 +690,7 @@ function weaknessIcons(ea){
 function enemyStack(E){return E.units.map((x,i)=> i===E.active?'':`<div class="e"><div class="emini"><div class="ehpm"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="ehpm gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div></div><div class="ec ${x.alive?'':'dead'}">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;border-radius:50%">`:(x.cfg.emoji||'👾')}${wkCorner(x)}</div></div>`).join('')||'<div class="e" style="opacity:.5">대기 없음</div>';}
 function wkCorner(u){const w=(u.cfg.weak&&u.cfg.weak.length)?u.cfg.weak:[weakOf(u.element)];return `<div class="wkcorner">`+w.slice(0,3).map(e=>`<span class="el-${(elemIdx(e)+8)%8}">${e}</span>`).join('')+`</div>`;}
 function ultCorner(x){const req=ultReq(x);const pct=Math.min(100,x.gauge/req*100);const full=x.gauge>=req;return `<div class="ultcorner${full?' full':''}" title="필살기 ${full?'READY':Math.round(pct)+'%'}"><i style="background:conic-gradient(var(--ult) ${pct*3.6}deg, rgba(12,18,30,.85) 0)"></i><b>★</b></div>`;}
-function partyBar(A){const cur=teamActive(A);const canSwap=game&&!game.over&&game.turnSide==='ally'&&!auto&&!busy&&(cur.acted||0)===0&&cur.ap>=1;return A.units.map((x,i)=>{const sw=canSwap&&i!==A.active&&x.alive;return `<div class="pm ${i===A.active?'active':''} ${x.alive?'':'dead'} ${sw?'swappable':''}" onclick="playerSwapTo(${i})"><div class="pc">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;object-fit:cover">`:(x.cfg.emoji||'🙂')}${ultCorner(x)}${wkCorner(x)}</div><div class="ph"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="pg gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div><small>${x.name}</small></div>`;}).join('');}
+function partyBar(A){const cur=teamActive(A);const canSwap=game&&!game.over&&game.turnSide==='ally'&&!auto&&!busy&&(cur.acted||0)===0&&cur.ap>=1;return A.units.map((x,i)=>{const sw=canSwap&&i!==A.active&&x.alive;return `<div class="pm ${i===A.active?'active':''} ${x.alive?'':'dead'} ${sw?'swappable':''}" onclick="playerSwapTo(${i})"><div class="pc">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(x.cfg.emoji||'🙂')}${ultCorner(x)}${wkCorner(x).replace('wkcorner','wkcorner wkright')}</div><div class="ph"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="pg gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div><small>${x.name}</small></div>`;}).join('');}
 function render(){
   if(!game)return;
   const A=game.A,E=game.E,ea=teamActive(E),aa=teamActive(A),turnAlly=game.turnSide==='ally';
@@ -726,8 +726,6 @@ function render(){
       <div class="cc enemy ${!turnAlly?'turn':''}">${eportBig}</div>
       <div class="cn">${ea.name} ${elBadge(ea.element)}</div>
       <div class="ug">
-        <div class="glab"><span>그로기</span><span>${Math.round(ea.groggy)}/${ea.maxGroggy}</span></div>
-        <div class="gb"><i class="f-gg" style="width:${ea.groggy/ea.maxGroggy*100}%"></i></div>
         <div class="glab"><span>ATK ${ea.atk}</span><span>DEF ${ea.def}</span></div>
       </div>
       <div class="estate">${stateBadges(ea)}</div>
