@@ -38,8 +38,8 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{border:1px solid var(--line);padding:5px 7px;text-align:center}
 th{background:var(--panel2);color:var(--accent2)}
 .badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
-.el-0{background:#ffd25b;color:#3a2a05}.el-1{background:#9fb6ff;color:#0c1830}.el-2{background:#a779ff;color:#1a0c2a}
-.el-3{background:#ff6b6b;color:#2a0808}.el-4{background:#67e0c0;color:#05281f}.el-5{background:#a779ff;color:#1a0c2a}
+.el-0{background:#ffd25b;color:#3a2a05}.el-1{background:#9fb6ff;color:#0c1830}.el-2{background:#ff6b6b;color:#2a0808}
+.el-3{background:#a779ff;color:#1a0c2a}.el-4{background:#67e0c0;color:#05281f}.el-5{background:#a779ff;color:#1a0c2a}
 .el-6{background:#7c5cff;color:#fff}.el-7{background:#36c2ff;color:#042430}
 .st{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
 .st.aggro{background:rgba(255,91,91,.18);color:#ff9a9a;border:1px solid #ff5b5b}
@@ -300,11 +300,10 @@ th{background:var(--panel2);color:var(--accent2)}
   <!-- ============ REF / 설정 ============ -->
   <div class="view" id="view-ref">
     <div class="panel">
-      <div class="row" style="justify-content:space-between"><h2 style="margin:0">속성 이름 · 상성 매트릭스</h2>
-        <span><button class="mini" id="addElem">＋ 속성 추가</button> <button class="mini" id="resetMx">상성 기본값</button></span></div>
-      <p class="note">속성 이름을 바꾸면 캐릭터에 자동 반영됩니다. 상성표의 각 칸(공격→대상 배율)을 직접 수정하세요. 1보다 크면 약점(대미지↑), 작으면 반감.</p>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">속성 이름 · 약점 보너스</h2>
+        <span><button class="mini" id="addElem">＋ 속성 추가</button></span></div>
+      <p class="note">속성은 상성 순환(포켓몬식)이 아니라, <b>공격 속성이 대상의 약점 속성과 일치할 때만</b> 추가 대미지·추가 그로기가 적용됩니다. 보너스 배율은 아래 「공식·게이지 설정」의 <b>약점 대미지 배율 / 약점 그로기 계수</b>로 조정하세요. 속성 이름(성·월·혈·명·환)은 임시이며 변경 시 캐릭터에 자동 반영됩니다.</p>
       <div id="elemNames" class="row" style="margin:10px 0"></div>
-      <div id="mxTable"></div>
     </div>
     <div class="panel">
       <h2 style="margin-top:0">대미지 공식 계수</h2>
@@ -324,7 +323,7 @@ th{background:var(--panel2);color:var(--accent2)}
 
 <script>
 /* ================= 설정값(편집 가능) ================= */
-let ELEMS=['성','월','명','혈','환'];
+let ELEMS=['성','월','혈','명','환'];
 let FCFG={
   defK:300, weak:1.5, resist:0.6, neutral:1.0,
   breakState:1.50, guard:0.60, parryGood:0.30, parryPerfect:0.10,
@@ -369,10 +368,9 @@ const teamAlive=t=>t.units.some(u=>u.alive);
 
 function applyHit(atk,def,skill){
   const crit=Math.random()*100<atk.crit;
-  let weak,res=false;
-  if(def.cfg.weak&&def.cfg.weak.length){weak=def.cfg.weak.includes(atk.element);}
-  else{const m=elemMult(atk.element,def.element);weak=m>FCFG.neutral;res=m<FCFG.neutral;}
-  const eleM=weak?FCFG.weak:(res?FCFG.resist:FCFG.neutral);
+  const weak=(def.cfg.weak&&def.cfg.weak.length)?def.cfg.weak.includes(atk.element):(atk.element===def.element);
+  const res=false;
+  const eleM=weak?FCFG.weak:FCFG.neutral;
   const base=skill.dmg*atk.atk, defM=FCFG.defK/(FCFG.defK+def.def);
   const critM=crit?(1+atk.cdmg/100):1, breakM=def.breakState?FCFG.breakState:1, guardM=def.guard||1, r=rnd(FCFG.randMin,FCFG.randMax);
   let dmg=Math.floor(base*defM*eleM*critM*breakM*guardM*r); if(dmg<1)dmg=1;
@@ -840,12 +838,9 @@ function kpi(label,val,color){return `<div class="kpi"><span class="sub">${label
 /* ================= 설정(상성/공식/AP·게이지) ================= */
 function renderSettings(){
   $('#elemNames').innerHTML=ELEMS.map((e,i)=>`<label class="fld">속성 ${i+1}<span style="display:flex;gap:4px"><input type="text" value="${e}" data-elem="${i}" style="width:80px"><button class="mini danger" data-elemdel="${i}">✕</button></span></label>`).join('');
-  let h='<table class="mxtable"><tr><th>공격＼대상</th>'+ELEMS.map(e=>`<th>${e}</th>`).join('')+'</tr>';
-  ELEMS.forEach((a,i)=>{h+=`<tr><th>${a}</th>`;ELEMS.forEach((t,j)=>{const v=MX[i]&&MX[i][j]!=null?MX[i][j]:FCFG.neutral;const c=v>FCFG.neutral?'color:var(--good)':(v<FCFG.neutral?'color:var(--danger)':'');h+=`<td><input type="number" step="0.1" value="${v}" data-mx="${i}-${j}" style="${c}"></td>`;});h+='</tr>';});
-  h+='</table>';$('#mxTable').innerHTML=h;
   const fnum=(lbl,k,step=0.05)=>`<label class="fld">${lbl}<input type="number" step="${step}" value="${FCFG[k]}" data-fcfg="${k}"></label>`;
   $('#formulaCfg').innerHTML=[
-    fnum('방어 상수 K','defK',10),fnum('기준 배율(중립)','neutral',0.1),
+    fnum('방어 상수 K','defK',10),fnum('약점 대미지 배율','weak',0.1),fnum('기준 배율(비약점)','neutral',0.1),
     fnum('브레이크 상태 배율','breakState'),
     fnum('가드 배율','guard'),fnum('패링(성공) 배율','parryGood'),fnum('패링(퍼펙트) 배율','parryPerfect'),
     fnum('난수 최소','randMin'),fnum('난수 최대','randMax'),
@@ -860,12 +855,10 @@ function renderSettings(){
   $('#aiCfg').innerHTML=`<label class="fld">행동 우선순위<select data-ai="priority">${prOpts.map(o=>`<option value="${o[0]}" ${AICFG.priority.join(',')===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></label>`+`<label class="fld">방어 전환 HP%<input type="number" data-ai="defendHpPct" value="${AICFG.defendHpPct}"></label>`+`<label class="fld">자동 패링 성공률%<input type="number" data-ai="parryRate" value="${AICFG.parryRate}"></label>`;
   $$('#elemNames [data-elem]').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.elem;const old=ELEMS[i];const nv=inp.value.trim()||old;DATA.allies.concat(DATA.enemies,DATA.reserve).forEach(u=>{if(u.element===old)u.element=nv;if(u.weak)u.weak=u.weak.map(w=>w===old?nv:w);});ELEMS[i]=nv;renderSettings();});
   $$('#elemNames [data-elemdel]').forEach(b=>b.onclick=()=>{if(ELEMS.length<=2){alert('최소 2개 속성이 필요합니다.');return;}const i=+b.dataset.elemdel;const removed=ELEMS[i];ELEMS.splice(i,1);MX.splice(i,1);MX.forEach(r=>r.splice(i,1));DATA.allies.concat(DATA.enemies,DATA.reserve).forEach(u=>{if(u.element===removed)u.element=ELEMS[0];});renderSettings();});
-  $$('#mxTable [data-mx]').forEach(inp=>inp.onchange=()=>{const[i,j]=inp.dataset.mx.split('-').map(Number);if(!MX[i])MX[i]=[];MX[i][j]=parseFloat(inp.value);renderSettings();});
   $$('#formulaCfg [data-fcfg],#apCfg [data-fcfg]').forEach(inp=>inp.onchange=()=>{FCFG[inp.dataset.fcfg]=parseFloat(inp.value);});
   $$('#aiCfg [data-ai]').forEach(inp=>inp.onchange=()=>{const k=inp.dataset.ai;if(k==='priority')AICFG.priority=inp.value.split(',');else AICFG[k]=parseFloat(inp.value);});
 }
 $('#addElem').onclick=()=>{ELEMS.push('속성'+(ELEMS.length+1));MX.forEach(r=>r.push(FCFG.neutral));MX.push(Array(ELEMS.length).fill(FCFG.neutral));renderSettings();};
-$('#resetMx').onclick=()=>{MX=buildDefaultMX();renderSettings();};
 renderSettings();
 </script>
 </body>
