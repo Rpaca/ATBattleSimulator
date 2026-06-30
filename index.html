@@ -205,7 +205,14 @@ th{background:var(--panel2);color:var(--accent2)}
 .wkcorner span{font-size:9px;line-height:1.2;padding:1px 4px;border-radius:7px;font-weight:800;border:1px solid rgba(0,0,0,.45);box-shadow:0 1px 2px rgba(0,0,0,.5)}
 .estack .wkcorner{top:-2px;left:-2px}.estack .wkcorner span{font-size:7px;padding:0 2px;border-radius:5px}
 .pc .wkcorner.wkright{left:auto;right:-3px}
-.pc .ultcorner{position:absolute;top:-5px;left:-5px;width:19px;height:19px;border-radius:50%;z-index:5;display:flex;align-items:center;justify-content:center}
+.pc .ultcorner{position:absolute;top:-5px;right:-5px;left:auto;width:19px;height:19px;border-radius:50%;z-index:5;display:flex;align-items:center;justify-content:center}
+.pc .ultcorner.full{box-shadow:0 0 8px 2px rgba(127,224,255,.85);animation:ultFull 1.2s ease-in-out infinite}
+.pc .ultcorner.full>b{color:#ffe066}
+@keyframes ultFull{0%,100%{box-shadow:0 0 6px 1px rgba(127,224,255,.6)}50%{box-shadow:0 0 11px 3px rgba(127,224,255,.95)}}
+.pm.swappable .pc{animation:swapPulse 1.4s ease-in-out infinite;cursor:pointer}
+@keyframes swapPulse{0%,100%{box-shadow:0 0 4px 1px rgba(124,92,255,.35)}50%{box-shadow:0 0 12px 3px rgba(124,92,255,.75)}}
+.abtn.glow:not(:disabled){animation:btnPulse 1.7s ease-in-out infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 0 0 rgba(127,200,255,0)}50%{box-shadow:0 0 9px 1px rgba(127,200,255,.35)}}
 .pc .ultcorner>i{position:absolute;inset:0;border-radius:50%;border:1px solid #2a3550}
 .pc .ultcorner>b{position:relative;font-size:9px;color:#bcd8ff;line-height:1;text-shadow:0 1px 2px #000}
 </style>
@@ -560,7 +567,7 @@ function renderActions(){
   if(!game||game.over||game.turnSide!=='ally'||auto||busy){host.innerHTML=`<span class="sub" style="align-self:center">${game&&game.over?'전투 종료':'상대 턴 진행 중…'}</span>`;return;}
   const u=teamActive(game.A);
   const mk=(cls,ic,label,enable,onclick,cost,o={})=>{
-    const b=document.createElement('button');b.className='abtn '+cls+(enable?'':' dis');
+    const b=document.createElement('button');b.className='abtn '+cls+(enable?' glow':' dis');
     let h=cost!=null?`<span class="apc">${cost}</span>`:'';
     if(o.gauge!=null)h+=`<span class="gauge-ring" style="background:conic-gradient(var(--ult) ${Math.min(100,o.gauge/FCFG.ultMax*100)*3.6}deg, rgba(255,255,255,.10) 0)"></span>`;
     h+=`<span class="ic">${ic}</span><span class="tl">${label}</span>`;
@@ -569,8 +576,8 @@ function renderActions(){
   };
   host.appendChild(mk('sm','🛡️','방어',u.ap>=1&&(u.acted||0)===0,playerDefend,1));
   host.appendChild(mk('md skill','✦','스킬',canUse(u,'basic'),()=>playerSkill('basic'),1));
-  const stg=u.enhCharge||0;const enhCd=(stg===1)?u.cd.enhSpecial:0;const enhLabel=stg===0?'강화 1타':(stg===1?'강화 특수':'강화 소진');
-  host.appendChild(mk('lg enh','💥',enhLabel,canUse(u,'enhanced'),()=>playerSkill('enhanced'), enhCd>0?null:1, {cd:enhCd}));
+  const stg=u.enhCharge||0;const enhCd=u.cd.enhSpecial||0;const enhLabel=stg===0?(enhCd>0?'강화(특수 쿨)':'강화 1타'):(stg===1?'강화 특수':'강화 소진');
+  host.appendChild(mk('lg enh','💥',enhLabel,canUse(u,'enhanced'),()=>playerSkill('enhanced'), canUse(u,'enhanced')?1:null, {cd:enhCd}));
   const ultReady=u.gauge>=ultReq(u)&&u.cd.ultimate===0;
   host.appendChild(mk('xl ult'+(ultReady?' ready':''),'🌟', ultReady?'READY':Math.round(u.gauge/ultReq(u)*100)+'%', canUse(u,'ultimate'),()=>playerSkill('ultimate'), (u.cd.ultimate>0||!ultReady)?null:u.cfg.skills.ultimate.ap, {cd:u.cd.ultimate, gauge:u.gauge}));
 }
@@ -653,6 +660,7 @@ function hitEffect(target,r){
 function stateBadges(u){const s=[];if(u.breakState)s.push('<span class="st break">브레이크</span>');if(u.guard)s.push('<span class="st guard">가드</span>');return s.join('');}
 function weakBadges(u){const w=(u.cfg.weak&&u.cfg.weak.length)?u.cfg.weak:[weakOf(u.element)];return w.map(e=>`<span class="badge el-${(elemIdx(e)+8)%8}" style="font-size:9px;padding:0 5px">${e}</span>`).join(' ');}
 function hpBars(u){return Math.max(1,Math.round(u.maxHp/1500));}
+function hpInfo(u){const N=Math.max(1,Math.round(u.maxHp/3000));const seg=u.maxHp/N;const left=u.hp<=0?0:Math.ceil(u.hp/seg);const fill=u.hp<=0?0:((u.hp-(left-1)*seg)/seg)*100;return {N,mult:Math.max(0,left-1),fill};}
 function predictIntent(u){
   const c={ap:FCFG.apStart,gauge:u.gauge,enhCharge:0,specialUses:u.specialUses||0,cd:{enhSpecial:u.cd.enhSpecial,ultimate:u.cd.ultimate},hp:u.hp,maxHp:u.maxHp,sk:u.cfg.skills};
   const out=[];
@@ -681,20 +689,21 @@ function weaknessIcons(ea){
 }
 function enemyStack(E){return E.units.map((x,i)=> i===E.active?'':`<div class="e"><div class="emini"><div class="ehpm"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="ehpm gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div></div><div class="ec ${x.alive?'':'dead'}">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;border-radius:50%">`:(x.cfg.emoji||'👾')}${wkCorner(x)}</div></div>`).join('')||'<div class="e" style="opacity:.5">대기 없음</div>';}
 function wkCorner(u){const w=(u.cfg.weak&&u.cfg.weak.length)?u.cfg.weak:[weakOf(u.element)];return `<div class="wkcorner">`+w.slice(0,3).map(e=>`<span class="el-${(elemIdx(e)+8)%8}">${e}</span>`).join('')+`</div>`;}
-function ultCorner(x){const pct=Math.min(100,x.gauge/FCFG.ultMax*100);return `<div class="ultcorner" title="필살기 게이지 ${Math.round(pct)}%"><i style="background:conic-gradient(var(--ult) ${pct*3.6}deg, rgba(12,18,30,.85) 0)"></i><b>★</b></div>`;}
-function partyBar(A){return A.units.map((x,i)=>`<div class="pm ${i===A.active?'active':''} ${x.alive?'':'dead'}" onclick="playerSwapTo(${i})"><div class="pc">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;object-fit:cover">`:(x.cfg.emoji||'🙂')}${ultCorner(x)}${wkCorner(x).replace('wkcorner','wkcorner wkright')}</div><div class="ph"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="pg gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div><small>${x.name}</small></div>`).join('');}
+function ultCorner(x){const req=ultReq(x);const pct=Math.min(100,x.gauge/req*100);const full=x.gauge>=req;return `<div class="ultcorner${full?' full':''}" title="필살기 ${full?'READY':Math.round(pct)+'%'}"><i style="background:conic-gradient(var(--ult) ${pct*3.6}deg, rgba(12,18,30,.85) 0)"></i><b>★</b></div>`;}
+function partyBar(A){const cur=teamActive(A);const canSwap=game&&!game.over&&game.turnSide==='ally'&&!auto&&!busy&&(cur.acted||0)===0&&cur.ap>=1;return A.units.map((x,i)=>{const sw=canSwap&&i!==A.active&&x.alive;return `<div class="pm ${i===A.active?'active':''} ${x.alive?'':'dead'} ${sw?'swappable':''}" onclick="playerSwapTo(${i})"><div class="pc">${x.cfg.img?`<img src="${x.cfg.img}" style="width:100%;height:100%;object-fit:cover">`:(x.cfg.emoji||'🙂')}${ultCorner(x)}${wkCorner(x)}</div><div class="ph"><i style="width:${x.alive?x.hp/x.maxHp*100:0}%"></i></div><div class="pg gg"><i style="width:${x.alive?x.groggy/x.maxGroggy*100:0}%"></i></div><small>${x.name}</small></div>`;}).join('');}
 function render(){
   if(!game)return;
   const A=game.A,E=game.E,ea=teamActive(E),aa=teamActive(A),turnAlly=game.turnSide==='ally';
   const eport=ea.cfg.img?`<img src="${ea.cfg.img}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:(ea.cfg.emoji||'👾');
   const eportBig=ea.cfg.img?`<img src="${ea.cfg.img}" style="width:100%;height:100%;object-fit:cover">`:(ea.cfg.emoji||'👾');
   const aport=aa.cfg.img?`<img src="${aa.cfg.img}" style="width:100%;height:100%;object-fit:cover">`:(aa.cfg.emoji||'🙂');
+  const eh=hpInfo(ea),ah=hpInfo(aa); // HP 스택바(한 줄 + ×N)
   $('#arena').innerHTML = `<div class="bstage">
     <div class="enemy-top">
       <div class="et-portrait">${eport}</div>
       <div class="et-main">
         <div class="et-name"><span>${ea.name}</span><span class="et-weak">약점 ${weakBadges(ea)}</span></div>
-        <div class="ehprow"><div class="ehp"><i style="width:${ea.hp/ea.maxHp*100}%"></i><span>${ea.hp.toLocaleString()} / ${ea.maxHp.toLocaleString()}</span></div><b class="exn">×${hpBars(ea)}</b></div>
+        <div class="ehprow"><div class="ehp"><i style="width:${eh.fill}%"></i><span>${ea.hp.toLocaleString()} / ${ea.maxHp.toLocaleString()}</span></div>${eh.mult>0?`<b class="exn">×${eh.mult}</b>`:''}</div>
         <div class="ebrow"><div class="ebreak"><i style="width:${ea.groggy/ea.maxGroggy*100}%"></i></div></div>
         <div class="et-bottom"><div class="intent" title="이번 라운드 다음 예상 행동(좌→우)"><span class="ilab">다음 행동</span>${intentIcons(ea)}</div><span class="engage-bar"><b>${game.round}R</b> ENGAGE</span></div>
       </div>
@@ -705,8 +714,8 @@ function render(){
       <div class="cc ${turnAlly?'turn':''}">${aport}</div>
       <div class="cn">${aa.name} ${elBadge(aa.element)}</div>
       <div class="ug">
-        <div class="glab"><span>HP</span><span>${aa.hp.toLocaleString()} / ${aa.maxHp.toLocaleString()}</span></div>
-        <div class="gb"><i class="f-hp" style="width:${aa.hp/aa.maxHp*100}%"></i></div>
+        <div class="glab"><span>HP ${ah.mult>0?`<b class="exn">×${ah.mult}</b>`:''}</span><span>${aa.hp.toLocaleString()} / ${aa.maxHp.toLocaleString()}</span></div>
+        <div class="gb"><i class="f-hp" style="width:${ah.fill}%"></i></div>
         <div class="glab"><span>그로기</span><span>${Math.round(aa.groggy)}/${aa.maxGroggy}</span></div>
         <div class="gb"><i class="f-gg" style="width:${aa.groggy/aa.maxGroggy*100}%"></i></div>
       </div>
