@@ -744,7 +744,8 @@ function patEditor(u,id){
   const ar='<span style="color:var(--muted)">→</span>';
   const pr=(u.patterns||[]).map((pat,pi)=>`<div style="display:flex;gap:4px;align-items:center;margin:3px 0">`+[0,1,2].map(si=>ts('pat',pi,si,pat[si])).join(ar)+`<button class="mini danger" data-patdel="${id}|${pi}">✕</button></div>`).join('');
   const rr=Object.keys(u.roundScript||{}).map(rd=>`<div style="display:flex;gap:4px;align-items:center;margin:3px 0">R<input type="number" data-rsround="${id}|${rd}" value="${rd}" style="width:42px;font-size:11px">`+[0,1,2].map(si=>ts('rs',rd,si,u.roundScript[rd][si])).join(ar)+`<button class="mini danger" data-rsdel="${id}|${rd}">✕</button></div>`).join('');
-  return `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px">
+  return `<div style="margin-top:10px;border-top:2px solid var(--accent);padding-top:8px">
+    <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:4px">🤖 몹 AI 설정 (행동 패턴 스크립트)</div>
     <div class="row" style="justify-content:space-between"><b style="font-size:12px">🎭 적 행동 패턴 — 턴마다 랜덤 1개 실행 (쉬기 · 공격 · 강공격 · 궁극)</b><button class="mini" data-pataddid="${id}">＋ 패턴</button></div>
     ${pr}
     <div class="row" style="justify-content:space-between;margin-top:6px"><b style="font-size:12px">📌 라운드 지정 — 해당 라운드엔 이 패턴 무조건 진행</b><button class="mini" data-rsaddid="${id}">＋ 지정</button></div>
@@ -776,7 +777,7 @@ function unitEditor(u,side,idx){
     </div>
     <table class="sktable" style="margin-top:10px"><tr><th>스킬</th><th>대미지%</th><th>AP</th><th>쿨</th><th>그로기배율</th><th>궁극요구</th></tr>
       ${sk('basic','스킬')}${sk('enhanced','강화')}${sk('ultimate','궁극기')}${sk('swap','교체')}</table>
-    ${patEditor(u,id)}
+    ${side!=='allies'?patEditor(u,id):'<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><span class="sub" style="font-size:11px">아군은 행동 패턴이 없습니다(자동 전투는 우측 시뮬레이션 탭의 <b>AI 설정</b>에서 우선순위로 동작). 몹으로 편성하면 행동 패턴을 설정할 수 있습니다.</span></div>'}
   </details>`;
 }
 let dragSrc=null;
